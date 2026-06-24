@@ -3,7 +3,7 @@ package top.ipla.drama.data
 import com.google.gson.annotations.SerializedName
 
 data class Drama(
-    @SerializedName("id") val id: Int = 0,
+    @SerializedName("id") val id: String = "",
     @SerializedName("title") val title: String = "",
     @SerializedName("cover") val cover: String = "",
     @SerializedName("description") val description: String = "",
@@ -14,6 +14,7 @@ data class Drama(
 
 data class Episode(
     @SerializedName("id") val id: Int = 0,
+    @SerializedName("video_id") val videoId: String = "",
     @SerializedName("drama_id") val dramaId: Int = 0,
     @SerializedName("title") val title: String = "",
     @SerializedName("video_url") val videoUrl: String = "",
@@ -34,6 +35,15 @@ data class DramaListResponse(
 data class DramaDetailResponse(
     @SerializedName("status") val status: String = "",
     @SerializedName("data") val data: DramaDetail? = null
+)
+
+data class VideoUrlResponse(
+    @SerializedName("status") val status: String = "",
+    @SerializedName("data") val data: VideoUrlData? = null
+)
+
+data class VideoUrlData(
+    @SerializedName("video_url") val videoUrl: String = ""
 )
 
 data class UserInfo(

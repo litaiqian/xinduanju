@@ -29,23 +29,32 @@ import top.ipla.drama.data.DramaDetail
 import top.ipla.drama.data.Episode
 
 @Composable
-fun PlayerScreen(navController: NavHostController, dramaId: Int) {
+fun PlayerScreen(navController: NavHostController, dramaId: String) {
     var detail by remember { mutableStateOf<DramaDetail?>(null) }
     var currentIndex by remember { mutableIntStateOf(0) }
+    var currentVideoUrl by remember { mutableStateOf("") }
     var showEpisodeList by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(dramaId) {
-        if (dramaId > 0) {
+        if (dramaId.isNotEmpty()) {
             try {
                 val resp = ApiClient.service.getDramaDetail(dramaId)
-                if (resp.status == "success") detail = resp.data
+                if (resp.status == "success") {
+                    detail = resp.data
+                    // 自动加载第一集视频
+                    val ep = resp.data?.episodes?.firstOrNull()
+                    if (ep != null && ep.videoId.isNotEmpty()) {
+                        val vr = ApiClient.service.getVideoUrl(ep.videoId)
+                        if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                    }
+                }
             } catch (_: Exception) { }
         }
         isLoading = false
     }
 
-    if (dramaId == 0) {
+    if (dramaId.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
@@ -68,8 +77,8 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         // 全屏视频
-        currentEp?.let { ep ->
-            VideoPlayer(videoUrl = ep.videoUrl)
+        if (currentVideoUrl.isNotEmpty()) {
+            VideoPlayer(videoUrl = currentVideoUrl)
         }
 
         // 顶部：返回按钮 + 剧集列表按钮
@@ -95,7 +104,16 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
                         detectVerticalDragGestures(
                             onVerticalDrag = { _, _ -> },
                             onDragEnd = {
-                                if (currentIndex < episodes.lastIndex) currentIndex++
+                                if (currentIndex < episodes.lastIndex) {
+                                    currentIndex++
+                                    val ep = episodes.getOrNull(currentIndex)
+                                    if (ep != null && ep.videoId.isNotEmpty()) {
+                                        kotlinx.coroutines.MainScope().launch {
+                                            val vr = ApiClient.service.getVideoUrl(ep.videoId)
+                                            if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
@@ -144,7 +162,16 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
                 itemsIndexed(episodes) { index, ep ->
                     Surface(
                         color = if (index == currentIndex) Color.White.copy(alpha = 0.15f) else Color.Transparent,
-                        onClick = { currentIndex = index; showEpisodeList = false },
+                        onClick = {
+                            currentIndex = index; showEpisodeList = false
+                            val ep = episodes.getOrNull(index)
+                            if (ep != null && ep.videoId.isNotEmpty()) {
+                                kotlinx.coroutines.MainScope().launch {
+                                    val vr = ApiClient.service.getVideoUrl(ep.videoId)
+                                    if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(

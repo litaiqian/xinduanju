@@ -66,10 +66,10 @@ fun DramaNavHost(modifier: Modifier = Modifier) {
         ) {
             composable("home") { HomeScreen(navController) }
             composable("player/{dramaId}") { backStackEntry ->
-                val dramaId = backStackEntry.arguments?.getString("dramaId")?.toIntOrNull() ?: 0
+                val dramaId = backStackEntry.arguments?.getString("dramaId") ?: ""
                 PlayerScreen(navController, dramaId)
             }
-            composable("player") { PlayerScreen(navController, 0) }
+            composable("player") { PlayerScreen(navController, "") }
             composable("profile") { ProfileScreen(navController) }
             composable("login") { LoginScreen(navController) }
             composable("history") { HistoryScreen(navController) }

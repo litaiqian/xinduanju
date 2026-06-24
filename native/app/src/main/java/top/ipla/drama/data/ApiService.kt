@@ -10,8 +10,13 @@ interface ApiService {
 
     @GET("api/drama/detail/{id}")
     suspend fun getDramaDetail(
-        @Path("id") id: Int
+        @Path("id") id: String
     ): DramaDetailResponse
+
+    @GET("api/drama/video/{video_id}")
+    suspend fun getVideoUrl(
+        @Path("video_id") videoId: String
+    ): VideoUrlResponse
 
     @POST("api/drama/user/register")
     suspend fun register(
