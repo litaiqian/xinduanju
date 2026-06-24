@@ -128,8 +128,10 @@ def drama_detail(drama_id: str):
 def drama_video(video_id: str):
     resp = _call_api("video", video_id=video_id)
     if resp.get("code") == 200:
-        vl = resp.get("data", {}).get("video_lists", [])
-        url = vl[0].get("url", "") if vl else ""
+        data = resp.get("data", {})
+        # 百度短剧返回 qualities 数组，有 download_url
+        ql = data.get("qualities", data.get("video_lists", []))
+        url = ql[0].get("download_url", ql[0].get("url", "")) if ql else ""
         return JSONResponse({"status": "success", "data": {"video_url": url}})
     return JSONResponse({"status": "error", "data": None})
 
