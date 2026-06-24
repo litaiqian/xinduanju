@@ -11,20 +11,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import top.ipla.drama.data.ApiClient
+import top.ipla.drama.data.Drama
 import top.ipla.drama.data.PreferencesManager
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(navController: NavHostController) {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
-    val scope = rememberCoroutineScope()
-    var history by remember { mutableStateOf<List<top.ipla.drama.data.HistoryItem>>(emptyList()) }
+    var history by remember { mutableStateOf<List<Drama>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -33,14 +31,7 @@ fun HistoryScreen(navController: NavHostController) {
             val auth = if (token.isNotEmpty()) "Bearer $token" else ""
             val resp = ApiClient.service.getHistory(auth)
             if (resp.status == "success") {
-                history = resp.data.map { d ->
-                    top.ipla.drama.data.HistoryItem(
-                        dramaId = d.id,
-                        dramaTitle = d.title,
-                        cover = d.cover,
-                        episodeCount = d.episodeCount
-                    )
-                }
+                history = resp.data
             }
         } catch (_: Exception) { }
         isLoading = false
@@ -55,7 +46,6 @@ fun HistoryScreen(navController: NavHostController) {
                 }
             }
         )
-
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -68,9 +58,8 @@ fun HistoryScreen(navController: NavHostController) {
             LazyColumn {
                 items(history) { item ->
                     ListItem(
-                        headlineContent = { Text(item.dramaTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        supportingContent = { Text(item.episodeTitle, maxLines = 1) },
-                        modifier = Modifier
+                        headlineContent = { Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        supportingContent = { Text("${item.episodeCount}集") }
                     )
                 }
             }
