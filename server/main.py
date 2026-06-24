@@ -135,7 +135,12 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6, source: st
         if resp.get("code") != 200:
             return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
         raw = resp.get("data", [])
+        # 缓存: 如果降级了, 用实际源标记
+        actual_src = resp.get("_source", source)
+        ck_actual = f"list_{actual_src}_{kw}_{api_page}"
         _cache[ck] = (raw, now)
+        if actual_src != source:
+            _cache[ck_actual] = (raw, now)
     # 分片 + 去重
     start = ((page - 1) * page_size) % 15
     end = start + page_size
