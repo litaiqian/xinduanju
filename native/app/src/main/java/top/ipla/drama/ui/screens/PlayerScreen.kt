@@ -240,10 +240,8 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
             .padding(horizontal = 12.dp, vertical = 8.dp).navigationBarsPadding()
             .pointerInput(currentIndex) {
                 detectVerticalDragGestures(
-                    onDragEnd = {
-                        // 上滑=下一集, 下滑=上一集
-                        // 已在外部处理, 此处预留
-                    }
+                    onVerticalDrag = { _, _ -> },
+                    onDragEnd = { }
                 )
             }
         ) {
