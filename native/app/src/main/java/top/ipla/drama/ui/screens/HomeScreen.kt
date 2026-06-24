@@ -108,8 +108,8 @@ fun HomeScreen(navController: NavHostController) {
     val shouldLoadMore = remember { derivedStateOf {
         val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
         val totalItems = gridState.layoutInfo.totalItemsCount
-        lastVisible >= totalItems - 6 && hasMore && !loadingMore && !isLoading
-                && totalItems > 0 && totalItems >= currentPage * 3 // 至少翻了一页才加载
+        // 滑到倒数第2个触发加载
+        lastVisible >= totalItems - 2 && hasMore && !loadingMore && !isLoading && totalItems > 0
     }}
 
     LaunchedEffect(shouldLoadMore.value) {
