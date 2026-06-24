@@ -94,12 +94,17 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6):
             return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
         raw = resp.get("data", [])
         _cache[ck] = (raw, now)
-    # 分片返回
+    # 分片返回 + 去重
     start = ((page - 1) * page_size) % 15
     end = start + page_size
     chunk = raw[start:end]
+    seen = set()
     data = []
     for item in chunk:
+        title = item.get("title", "").replace("【热播】", "").replace("【热播好剧】", "").replace("[热播好剧]", "").strip()
+        if title in seen:
+            continue
+        seen.add(title)
         data.append({
             "id": item.get("id", ""),
             "title": item.get("title", ""),
