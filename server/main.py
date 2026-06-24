@@ -81,7 +81,8 @@ def _call_api(type_: str, source: str = "baidu", **kwargs) -> dict:
         if source == "hongguo":
             # 红果新版统一用POST JSON
             r = _requests.post(url, json=params, timeout=60, proxies={"http": None, "https": None})
-        elif type_ == "search":
+        elif type_ == "search" or (source == "baidu" and type_ == "video"):
+            # 百度搜索+视频用POST
             r = _requests.post(url, json=params, timeout=60, proxies={"http": None, "https": None})
         else:
             r = _requests.get(url, params=params, timeout=60, proxies={"http": None, "https": None})
