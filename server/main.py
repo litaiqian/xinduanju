@@ -92,13 +92,21 @@ def seed_data():
             )
         db.commit()
         drama_ids = [row[0] for row in db.execute("SELECT id FROM dramas").fetchall()]
-        sample_video = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+        sample_videos = [
+            "http://vjs.zencdn.net/v/oceans.mp4",
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
+        ]
         for did in drama_ids:
             ep_count = db.execute("SELECT episode_count FROM dramas WHERE id=?", (did,)).fetchone()[0]
             for ep in range(1, min(ep_count + 1, 6)):
+                video_url = sample_videos[(ep - 1) % len(sample_videos)]
                 db.execute(
                     "INSERT INTO episodes(drama_id,title,video_url,duration,\"order\") VALUES(?,?,?,?,?)",
-                    (did, f"第{ep}集", sample_video, 3, ep)
+                    (did, f"第{ep}集", video_url, 3, ep)
                 )
         db.commit()
 
