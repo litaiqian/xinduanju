@@ -29,7 +29,8 @@ data class DramaDetail(
 
 data class DramaListResponse(
     @SerializedName("status") val status: String = "",
-    @SerializedName("data") val data: List<Drama> = emptyList()
+    @SerializedName("data") val data: List<Drama> = emptyList(),
+    @SerializedName("has_more") val hasMore: Boolean = false
 )
 
 data class DramaDetailResponse(

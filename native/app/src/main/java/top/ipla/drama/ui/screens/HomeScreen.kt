@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -14,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.Drama
 
@@ -32,18 +35,49 @@ fun HomeScreen(navController: NavHostController) {
     var selectedCategory by remember { mutableStateOf("推荐") }
     var dramas by remember { mutableStateOf<List<Drama>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var loadingMore by remember { mutableStateOf(false) }
+    var currentPage by remember { mutableIntStateOf(1) }
+    var hasMore by remember { mutableStateOf(true) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val gridState = rememberLazyGridState()
 
     LaunchedEffect(selectedCategory, refreshTrigger) {
         isLoading = true
+        currentPage = 1
         try {
             val cat = if (selectedCategory == "推荐") "" else selectedCategory
-            val response = ApiClient.service.getDramaList(cat)
+            val response = ApiClient.service.getDramaList(cat, 1)
             if (response.status == "success") {
                 dramas = response.data
+                hasMore = response.hasMore
             }
         } catch (_: Exception) { }
         isLoading = false
+    }
+
+    // 检测滚动到底部加载更多
+    val shouldLoadMore = remember { derivedStateOf {
+        val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        val totalItems = gridState.layoutInfo.totalItemsCount
+        lastVisible >= totalItems - 6 && hasMore && !loadingMore && !isLoading
+    }}
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            loadingMore = true
+            val nextPage = currentPage + 1
+            try {
+                val cat = if (selectedCategory == "推荐") "" else selectedCategory
+                val response = ApiClient.service.getDramaList(cat, nextPage)
+                if (response.status == "success") {
+                    dramas = dramas + response.data
+                    currentPage = nextPage
+                    hasMore = response.hasMore
+                }
+            } catch (_: Exception) { }
+            loadingMore = false
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -84,6 +118,7 @@ fun HomeScreen(navController: NavHostController) {
             }
         } else {
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -92,6 +127,13 @@ fun HomeScreen(navController: NavHostController) {
                 items(dramas) { drama ->
                     DramaCard(drama = drama) {
                         navController.navigate("player/${drama.id}")
+                    }
+                }
+                if (loadingMore) {
+                    item(span = { GridItemSpan(2) }) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
             }

@@ -80,13 +80,13 @@ def startup():
 
 # ---- 短剧 API (百度短剧+缓存) ----
 @app.get("/api/drama/list")
-def drama_list(category: str = ""):
+def drama_list(category: str = "", page: int = 1):
     kw = category if category else "热播"
-    ck = f"list_{kw}"
+    ck = f"list_{kw}_{page}"
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_api("search", keyword=kw, page=1)
+    resp = _call_api("search", keyword=kw, page=page)
     if resp.get("code") == 200:
         data = []
         for item in resp.get("data", []):
@@ -99,7 +99,7 @@ def drama_list(category: str = ""):
                 "episode_count": item.get("totalChapterNum", 0),
                 "score": item.get("score", "0"),
             })
-        result = {"status": "success", "data": data}
+        result = {"status": "success", "data": data, "has_more": len(data) >= 10}
         _cache[ck] = (result, now)
         return JSONResponse(result)
     return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})

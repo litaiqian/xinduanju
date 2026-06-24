@@ -5,7 +5,8 @@ import retrofit2.http.*
 interface ApiService {
     @GET("api/drama/list")
     suspend fun getDramaList(
-        @Query("category") category: String = ""
+        @Query("category") category: String = "",
+        @Query("page") page: Int = 1
     ): DramaListResponse
 
     @GET("api/drama/detail/{id}")
