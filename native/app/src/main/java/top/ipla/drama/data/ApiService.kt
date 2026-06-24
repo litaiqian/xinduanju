@@ -6,7 +6,8 @@ interface ApiService {
     @GET("api/drama/list")
     suspend fun getDramaList(
         @Query("category") category: String = "",
-        @Query("page") page: Int = 1
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 6
     ): DramaListResponse
 
     @GET("api/drama/detail/{id}")

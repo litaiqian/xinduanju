@@ -80,29 +80,36 @@ def startup():
 
 # ---- 短剧 API (百度短剧+缓存) ----
 @app.get("/api/drama/list")
-def drama_list(category: str = "", page: int = 1):
+def drama_list(category: str = "", page: int = 1, page_size: int = 6):
     kw = category if category else "热播"
-    ck = f"list_{kw}_{page}"
+    # 计算需要从52api拉的页数（每页约15条）
+    api_page = max(1, (page - 1) * page_size // 15 + 1)
+    ck = f"list_{kw}_{api_page}"
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
-        return JSONResponse(_cache[ck][0])
-    resp = _call_api("search", keyword=kw, page=page)
-    if resp.get("code") == 200:
-        data = []
-        for item in resp.get("data", []):
-            data.append({
-                "id": item.get("id", ""),
-                "title": item.get("title", ""),
-                "cover": item.get("cover", ""),
-                "description": "",
-                "category": "",
-                "episode_count": item.get("totalChapterNum", 0),
-                "score": item.get("score", "0"),
-            })
-        result = {"status": "success", "data": data, "has_more": len(data) >= 10}
-        _cache[ck] = (result, now)
-        return JSONResponse(result)
-    return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
+        raw = _cache[ck][0]
+    else:
+        resp = _call_api("search", keyword=kw, page=api_page)
+        if resp.get("code") != 200:
+            return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
+        raw = resp.get("data", [])
+        _cache[ck] = (raw, now)
+    # 分片返回
+    start = ((page - 1) * page_size) % 15
+    end = start + page_size
+    chunk = raw[start:end]
+    data = []
+    for item in chunk:
+        data.append({
+            "id": item.get("id", ""),
+            "title": item.get("title", ""),
+            "cover": item.get("cover", ""),
+            "description": "",
+            "category": "",
+            "episode_count": item.get("totalChapterNum", 0),
+            "score": item.get("score", "0"),
+        })
+    return JSONResponse({"status": "success", "data": data, "has_more": len(raw) >= 10})
 
 @app.get("/api/drama/detail/{drama_id}")
 def drama_detail(drama_id: str):
