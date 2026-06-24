@@ -24,6 +24,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.DramaDetail
 import top.ipla.drama.data.Episode
@@ -35,6 +36,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
     var currentVideoUrl by remember { mutableStateOf("") }
     var showEpisodeList by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(dramaId) {
         if (dramaId.isNotEmpty()) {
@@ -108,7 +110,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
                                     currentIndex++
                                     val ep = episodes.getOrNull(currentIndex)
                                     if (ep != null && ep.videoId.isNotEmpty()) {
-                                        kotlinx.coroutines.MainScope().launch {
+                                        scope.launch {
                                             val vr = ApiClient.service.getVideoUrl(ep.videoId)
                                             if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
                                         }
@@ -166,7 +168,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
                             currentIndex = index; showEpisodeList = false
                             val ep = episodes.getOrNull(index)
                             if (ep != null && ep.videoId.isNotEmpty()) {
-                                kotlinx.coroutines.MainScope().launch {
+                                scope.launch {
                                     val vr = ApiClient.service.getVideoUrl(ep.videoId)
                                     if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
                                 }
