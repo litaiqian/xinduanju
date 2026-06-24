@@ -8,8 +8,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,11 @@ fun HomeScreen(navController: NavHostController) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("短剧大全", fontWeight = FontWeight.Bold) },
+            actions = {
+                IconButton(onClick = { refreshTrigger++ }) {
+                    Icon(Icons.Default.Refresh, "刷新", tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -72,11 +78,11 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
 
-        PullToRefreshBox(
-            isRefreshing = isLoading,
-            onRefresh = { refreshTrigger++ },
-            modifier = Modifier.fillMaxSize()
-        ) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
