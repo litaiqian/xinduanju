@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,9 +31,9 @@ fun HomeScreen(navController: NavHostController) {
     var selectedCategory by remember { mutableStateOf("推荐") }
     var dramas by remember { mutableStateOf<List<Drama>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(selectedCategory) {
+    LaunchedEffect(selectedCategory, refreshTrigger) {
         isLoading = true
         try {
             val cat = if (selectedCategory == "推荐") "" else selectedCategory
@@ -71,11 +72,11 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
 
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            onRefresh = { refreshTrigger++ },
+            modifier = Modifier.fillMaxSize()
+        ) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(8.dp),
