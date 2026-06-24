@@ -13,12 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.Drama
 
@@ -93,7 +94,6 @@ fun HomeScreen(navController: NavHostController) {
 
 @Composable
 fun DramaCard(drama: Drama, onClick: () -> Unit) {
-    val bgColor = try { Color(android.graphics.Color.parseColor(drama.cover)) } catch (_: Exception) { Color.Gray }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -101,19 +101,14 @@ fun DramaCard(drama: Drama, onClick: () -> Unit) {
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(220.dp).background(bgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    drama.title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+            AsyncImage(
+                model = drama.cover,
+                contentDescription = drama.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                contentScale = ContentScale.Crop
+            )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
                     drama.title,
