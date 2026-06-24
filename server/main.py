@@ -171,7 +171,7 @@ def drama_detail(drama_id: str, source: str = "baidu"):
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_with_fallback("detail", preferred=source, id=drama_id)
+    resp = _call_api("detail", source=source, id=drama_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         episodes = []
@@ -207,7 +207,7 @@ def drama_video(video_id: str, source: str = "baidu"):
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_with_fallback("video", preferred=source, video_id=video_id)
+    resp = _call_api("video", source=source, video_id=video_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         ql = data.get("qualities", data.get("video_lists", []))
