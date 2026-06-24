@@ -74,16 +74,16 @@ def seed_data():
         if count > 0:
             return
         dramas = [
-            ("霸总爱上我", "https://picsum.photos/400/600?random=1", "甜宠霸总短剧", "甜宠", 80, 8.5),
-            ("重生之豪门千金", "https://picsum.photos/400/600?random=2", "重生复仇爽剧", "都市", 100, 9.1),
-            ("穿越古代当王妃", "https://picsum.photos/400/600?random=3", "古装穿越甜宠", "古装", 60, 7.8),
-            ("闪婚后被大佬宠上天", "https://picsum.photos/400/600?random=4", "现代甜宠剧", "甜宠", 50, 8.2),
-            ("逆袭从今天开始", "https://picsum.photos/400/600?random=5", "都市逆袭爽剧", "都市", 90, 8.9),
-            ("神医下山", "https://picsum.photos/400/600?random=6", "神医都市剧", "都市", 70, 8.0),
-            ("穿越之女帝驾到", "https://picsum.photos/400/600?random=7", "女尊穿越剧", "古装", 55, 7.5),
-            ("总裁的替身新娘", "https://picsum.photos/400/600?random=8", "替身甜宠文", "甜宠", 65, 8.7),
-            ("特工王妃太嚣张", "https://picsum.photos/400/600?random=9", "古装特工", "古装", 80, 8.3),
-            ("回到民国当少帅", "https://picsum.photos/400/600?random=10", "民国言情", "最新", 45, 8.6),
+            ("霸总爱上我", "#FF6B6B", "甜宠霸总短剧", "甜宠", 80, 8.5),
+            ("重生之豪门千金", "#4ECDC4", "重生复仇爽剧", "都市", 100, 9.1),
+            ("穿越古代当王妃", "#FFD93D", "古装穿越甜宠", "古装", 60, 7.8),
+            ("闪婚后被大佬宠上天", "#6BCB77", "现代甜宠剧", "甜宠", 50, 8.2),
+            ("逆袭从今天开始", "#45B7D1", "都市逆袭爽剧", "都市", 90, 8.9),
+            ("神医下山", "#DDA0DD", "神医都市剧", "都市", 70, 8.0),
+            ("穿越之女帝驾到", "#FF8C42", "女尊穿越剧", "古装", 55, 7.5),
+            ("总裁的替身新娘", "#98D8C8", "替身甜宠文", "甜宠", 65, 8.7),
+            ("特工王妃太嚣张", "#F7DC6F", "古装特工", "古装", 80, 8.3),
+            ("回到民国当少帅", "#BB8FCE", "民国言情", "最新", 45, 8.6),
         ]
         for d in dramas:
             db.execute(
@@ -92,7 +92,7 @@ def seed_data():
             )
         db.commit()
         drama_ids = [row[0] for row in db.execute("SELECT id FROM dramas").fetchall()]
-        sample_video = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        sample_video = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
         for did in drama_ids:
             ep_count = db.execute("SELECT episode_count FROM dramas WHERE id=?", (did,)).fetchone()[0]
             for ep in range(1, min(ep_count + 1, 6)):

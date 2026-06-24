@@ -93,6 +93,7 @@ fun HomeScreen(navController: NavHostController) {
 
 @Composable
 fun DramaCard(drama: Drama, onClick: () -> Unit) {
+    val bgColor = try { Color(android.graphics.Color.parseColor(drama.cover)) } catch (_: Exception) { Color.Gray }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -100,14 +101,19 @@ fun DramaCard(drama: Drama, onClick: () -> Unit) {
         shape = MaterialTheme.shapes.medium
     ) {
         Column {
-            AsyncImage(
-                model = drama.cover,
-                contentDescription = drama.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp),
-                contentScale = ContentScale.Crop
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth().height(220.dp).background(bgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    drama.title,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
                     drama.title,
