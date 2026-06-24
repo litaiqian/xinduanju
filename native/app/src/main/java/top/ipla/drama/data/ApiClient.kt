@@ -7,8 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "http://192.168.1.3:8001/"
-    private const val REMOTE_URL = "http://8.137.86.132:8001/"
+    private const val BASE_URL = "http://192.168.1.3:8000/"
+    private const val REMOTE_URL = "http://ipla.top:8000/"
 
     var useRemote = false
 

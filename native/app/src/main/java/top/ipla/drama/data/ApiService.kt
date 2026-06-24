@@ -13,22 +13,22 @@ interface ApiService {
         @Path("id") id: Int
     ): DramaDetailResponse
 
-    @POST("api/user/register")
+    @POST("api/drama/user/register")
     suspend fun register(
         @Body body: LoginRequest
     ): LoginResponse
 
-    @POST("api/user/login")
+    @POST("api/drama/user/login")
     suspend fun login(
         @Body body: LoginRequest
     ): LoginResponse
 
-    @GET("api/user/info")
+    @GET("api/drama/user/info")
     suspend fun getUserInfo(
         @Header("Authorization") token: String
     ): LoginResponse
 
-    @POST("api/user/checkin")
+    @POST("api/drama/user/checkin")
     suspend fun checkIn(
         @Header("Authorization") token: String
     ): CheckInResponse
