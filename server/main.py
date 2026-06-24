@@ -55,9 +55,9 @@ def _call_api(type_: str, **kwargs) -> dict:
     params.update(kwargs)
     try:
         if type_ == "search":
-            r = _requests.post(API_URL, json=params, timeout=30, proxies={"http": None, "https": None})
+            r = _requests.post(API_URL, json=params, timeout=60, proxies={"http": None, "https": None})
         else:
-            r = _requests.get(API_URL, params=params, timeout=30, proxies={"http": None, "https": None})
+            r = _requests.get(API_URL, params=params, timeout=60, proxies={"http": None, "https": None})
         return r.json()
     except Exception as e:
         return {"code": -1, "msg": str(e), "data": None}
@@ -100,11 +100,11 @@ def drama_detail(drama_id: str):
     if resp.get("code") == 200:
         data = resp.get("data", {})
         episodes = []
-        for ep in data.get("lists", []):
+        for idx, ep in enumerate(data.get("lists", []), 1):
             episodes.append({
                 "video_id": ep.get("video_id", ""),
                 "title": ep.get("title", ""),
-                "order": ep.get("chapter_no", ep.get("index", 0)),
+                "order": idx,
                 "duration": 180,
             })
         return JSONResponse({
