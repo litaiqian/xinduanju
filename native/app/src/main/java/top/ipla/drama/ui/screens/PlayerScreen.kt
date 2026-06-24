@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -28,7 +28,6 @@ import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.DramaDetail
 import top.ipla.drama.data.Episode
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(navController: NavHostController, dramaId: Int) {
     var detail by remember { mutableStateOf<DramaDetail?>(null) }
@@ -68,90 +67,101 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
     val currentEp = episodes.getOrNull(currentIndex)
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // 视频播放区
+        // 全屏视频
         currentEp?.let { ep ->
-            VideoPlayer(
-                videoUrl = ep.videoUrl,
-                modifier = Modifier.fillMaxSize()
+            VideoPlayer(videoUrl = ep.videoUrl)
+        }
+
+        // 顶部：返回按钮 + 剧集列表按钮
+        Row(
+            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().statusBarsPadding().padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.Default.ArrowBack, "返回", tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+            IconButton(onClick = { showEpisodeList = !showEpisodeList }) {
+                Icon(Icons.Default.List, "剧集列表", tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+        }
+
+        // 底部剧集信息 + 滑动手势切换
+        if (currentEp != null && !showEpisodeList) {
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .padding(16.dp).navigationBarsPadding()
                     .pointerInput(currentIndex) {
                         detectVerticalDragGestures(
                             onVerticalDrag = { _, _ -> },
                             onDragEnd = {
                                 if (currentIndex < episodes.lastIndex) currentIndex++
-                                else if (currentIndex > 0) currentIndex--
                             }
                         )
                     }
-            )
-        }
-
-        // 顶部返回按钮
-        IconButton(
-            onClick = { navController.popBackStack() },
-            modifier = Modifier.align(Alignment.TopStart).padding(16.dp).statusBarsPadding()
-        ) {
-            Icon(Icons.Default.ArrowBack, "返回", tint = Color.White)
-        }
-
-        // 剧集信息覆盖层
-        if (currentEp != null) {
-            Column(
-                modifier = Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .padding(16.dp).navigationBarsPadding()
             ) {
                 Text(
                     "${detail?.drama?.title}",
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp
                 )
                 Text(
-                    "第${currentEp.order}集 ${currentEp.title}",
-                    color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp
+                    "第${currentEp.order}集 ${currentEp.title} ｜ ${currentIndex + 1}/${episodes.size}",
+                    color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp
                 )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { if (currentIndex > 0) currentIndex-- }) {
-                        Text("⬆ 上一集", color = Color.White.copy(alpha = 0.7f))
-                    }
-                    TextButton(onClick = { showEpisodeList = !showEpisodeList }) {
-                        Text(if (showEpisodeList) "收起列表" else "📋 剧集列表", color = Color.White.copy(alpha = 0.7f))
-                    }
-                    TextButton(onClick = { if (currentIndex < episodes.lastIndex) currentIndex++ }) {
-                        Text("下一集 ⬇", color = Color.White.copy(alpha = 0.7f))
-                    }
-                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "⬆ 上滑切下一集",
+                    color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 
-    // 剧集列表面板
+    // 剧集列表面板（右上角按钮打开）
     if (showEpisodeList) {
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f))
-                .padding(top = 80.dp, bottom = 120.dp)
-                .navigationBarsPadding()
-        ) {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f))) {
+            // 关闭按钮
+            IconButton(
+                onClick = { showEpisodeList = false },
+                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
+            ) {
+                Icon(Icons.Default.List, "关闭列表", tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+                    .padding(top = 70.dp, bottom = 40.dp).navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+            ) {
+                item {
+                    Text(
+                        "${detail?.drama?.title} — 剧集列表",
+                        color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
                 itemsIndexed(episodes) { index, ep ->
                     Surface(
-                        color = if (index == currentIndex) Color.White.copy(alpha = 0.2f) else Color.Transparent,
+                        color = if (index == currentIndex) Color.White.copy(alpha = 0.15f) else Color.Transparent,
                         onClick = { currentIndex = index; showEpisodeList = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (index == currentIndex) {
                                 Icon(Icons.Default.PlayArrow, "播放中", tint = Color(0xFFFF6B35))
                                 Spacer(Modifier.width(8.dp))
+                            } else {
+                                Text(
+                                    "${index + 1}", color = Color.Gray, fontSize = 16.sp,
+                                    modifier = Modifier.width(32.dp)
+                                )
                             }
                             Column {
-                                Text(
-                                    "第${ep.order}集 ${ep.title}",
-                                    color = Color.White, fontSize = 16.sp
-                                )
+                                Text("第${ep.order}集 ${ep.title}", color = Color.White, fontSize = 16.sp)
                                 Text("${ep.duration}分钟", color = Color.Gray, fontSize = 12.sp)
                             }
                         }
@@ -163,7 +173,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
 }
 
 @Composable
-fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
+fun VideoPlayer(videoUrl: String) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
@@ -185,6 +195,6 @@ fun VideoPlayer(videoUrl: String, modifier: Modifier = Modifier) {
                 resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
         },
-        modifier = modifier
+        modifier = Modifier.fillMaxSize()
     )
 }

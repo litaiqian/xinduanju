@@ -22,10 +22,12 @@ data class BottomNavItem(
     val route: String
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DramaNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val hideBottomBar = currentRoute == "player" || currentRoute?.startsWith("player/") == true
 
     val items = listOf(
         BottomNavItem("首页", Icons.Default.Home, "home"),
@@ -35,23 +37,24 @@ fun DramaNavHost(modifier: Modifier = Modifier) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-                items.forEach { item ->
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            if (currentRoute != item.route) {
-                                navController.navigate(item.route) {
-                                    popUpTo("home") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+            if (!hideBottomBar) {
+                NavigationBar {
+                    items.forEach { item ->
+                        NavigationBarItem(
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label) },
+                            selected = currentRoute == item.route,
+                            onClick = {
+                                if (currentRoute != item.route) {
+                                    navController.navigate(item.route) {
+                                        popUpTo("home") { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
