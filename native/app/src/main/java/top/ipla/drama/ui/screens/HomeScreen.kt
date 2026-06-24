@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.Drama
@@ -34,50 +34,92 @@ fun HomeScreen(navController: NavHostController) {
     val categories = listOf("推荐", "最新", "热门", "都市", "古装", "甜宠")
     var selectedCategory by remember { mutableStateOf("推荐") }
     var dramas by remember { mutableStateOf<List<Drama>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
     var loadingMore by remember { mutableStateOf(false) }
     var currentPage by remember { mutableIntStateOf(1) }
     var hasMore by remember { mutableStateOf(true) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
+    var loaded by remember { mutableStateOf(false) }
+    var lastLoadTime by remember { mutableLongStateOf(0L) }
 
-    LaunchedEffect(selectedCategory, refreshTrigger) {
-        isLoading = true
-        currentPage = 1
-        try {
-            val cat = if (selectedCategory == "推荐") "" else selectedCategory
-            val response = ApiClient.service.getDramaList(cat, 1, 6)
-            if (response.status == "success") {
-                dramas = response.data
-                hasMore = response.hasMore
-            }
-        } catch (_: Exception) { }
-        isLoading = false
+    // 分类缓存: {category: (dramas, page, hasMore)}
+    val categoryCache = remember { mutableStateMapOf<String, Triple<List<Drama>, Int, Boolean>>() }
+
+    // 加载数据
+    fun loadPage(cat: String, page: Int, pageSize: Int, append: Boolean) {
+        scope.launch {
+            if (page == 1) isLoading = true else loadingMore = true
+            try {
+                val kw = if (cat == "推荐") "" else cat
+                val resp = ApiClient.service.getDramaList(kw, page, pageSize)
+                if (resp.status == "success") {
+                    val newData = if (append) dramas + resp.data else resp.data
+                    dramas = newData
+                    currentPage = page
+                    hasMore = resp.hasMore
+                    // 缓存分类数据
+                    if (resp.data.isNotEmpty()) {
+                        categoryCache[cat] = Triple(newData, page, resp.hasMore)
+                    }
+                }
+            } catch (_: Exception) { }
+            isLoading = false
+            loadingMore = false
+            lastLoadTime = System.currentTimeMillis()
+            loaded = true
+        }
     }
 
-    // 检测滚动到底部加载更多
+    // 首次加载
+    LaunchedEffect(Unit) {
+        if (!loaded) loadPage(selectedCategory, 1, 6, false)
+    }
+
+    // 分类切换
+    LaunchedEffect(selectedCategory) {
+        if (!loaded) return@LaunchedEffect
+        val cached = categoryCache[selectedCategory]
+        if (cached != null) {
+            // 命中缓存：瞬间切换
+            dramas = cached.first
+            currentPage = cached.second
+            hasMore = cached.third
+        } else {
+            // 无缓存：加载新分类
+            dramas = emptyList()
+            currentPage = 1
+            hasMore = true
+            loadPage(selectedCategory, 1, 6, false)
+        }
+    }
+
+    // 刷新
+    LaunchedEffect(refreshTrigger) {
+        categoryCache.clear()
+        dramas = emptyList()
+        currentPage = 1
+        hasMore = true
+        loadPage(selectedCategory, 1, 6, false)
+    }
+
+    // 滚动检测加载更多（带防抖）
     val shouldLoadMore = remember { derivedStateOf {
         val lastVisible = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
         val totalItems = gridState.layoutInfo.totalItemsCount
         lastVisible >= totalItems - 6 && hasMore && !loadingMore && !isLoading
+                && totalItems > 0 && totalItems >= currentPage * 3 // 至少翻了一页才加载
     }}
 
     LaunchedEffect(shouldLoadMore.value) {
         if (shouldLoadMore.value) {
-            loadingMore = true
+            // 防抖：1秒内不重复加载
+            val now = System.currentTimeMillis()
+            if (now - lastLoadTime < 1000) return@LaunchedEffect
             val nextPage = currentPage + 1
             val pageSize = if (nextPage % 3 == 1) 6 else 2
-            try {
-                val cat = if (selectedCategory == "推荐") "" else selectedCategory
-                val response = ApiClient.service.getDramaList(cat, nextPage, pageSize)
-                if (response.status == "success") {
-                    dramas = dramas + response.data
-                    currentPage = nextPage
-                    hasMore = response.hasMore
-                }
-            } catch (_: Exception) { }
-            loadingMore = false
+            loadPage(selectedCategory, nextPage, pageSize, true)
         }
     }
 
@@ -113,7 +155,7 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
 
-        if (isLoading) {
+        if (isLoading && !loaded) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }

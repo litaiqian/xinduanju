@@ -82,7 +82,6 @@ def startup():
 @app.get("/api/drama/list")
 def drama_list(category: str = "", page: int = 1, page_size: int = 6):
     kw = category if category else "热播"
-    # 计算需要从52api拉的页数（每页约15条）
     api_page = max(1, (page - 1) * page_size // 15 + 1)
     ck = f"list_{kw}_{api_page}"
     now = _time.time()
@@ -94,7 +93,7 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6):
             return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
         raw = resp.get("data", [])
         _cache[ck] = (raw, now)
-    # 分片返回 + 去重
+    # 分片 + 去重
     start = ((page - 1) * page_size) % 15
     end = start + page_size
     chunk = raw[start:end]
@@ -114,7 +113,9 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6):
             "episode_count": item.get("totalChapterNum", 0),
             "score": item.get("score", "0"),
         })
-    return JSONResponse({"status": "success", "data": data, "has_more": len(raw) >= 10})
+    # 有更多数据: raw足够多 或 分片未到末尾
+    has_more = len(raw) >= 10 or (start + page_size < 15 and len(raw) > start + page_size)
+    return JSONResponse({"status": "success", "data": data, "has_more": has_more})
 
 @app.get("/api/drama/detail/{drama_id}")
 def drama_detail(drama_id: str):
