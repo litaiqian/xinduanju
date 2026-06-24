@@ -23,6 +23,11 @@ _CACHE_TTL = 1800  # 30分钟
 _hg_last_call = 0.0
 _HG_MIN_INTERVAL = 4.0
 
+# 源优先级: baidu优先(便宜), 失败降级到hongguo
+_SOURCE_PRIORITY = ["baidu", "hongguo"]
+# 记录失败源的黑名单 {cache_key: set(failed_sources)}
+_source_failures = {}
+
 @contextmanager
 def get_db():
     conn = sqlite3.connect(DB)
@@ -84,6 +89,26 @@ def _call_api(type_: str, source: str = "baidu", **kwargs) -> dict:
     except Exception as e:
         return {"code": -1, "msg": str(e), "data": None}
 
+def _call_with_fallback(type_: str, preferred: str = "baidu", **kwargs) -> dict:
+    """智能降级调用: 优先用preferred源, 失败自动切换"""
+    # 构建尝试顺序: preferred优先, 然后其他源
+    sources = [preferred] + [s for s in _SOURCE_PRIORITY if s != preferred]
+    
+    for src in sources:
+        resp = _call_api(type_, source=src, **kwargs)
+        code = resp.get("code", -1)
+        # 200=成功, 400/403=余额不足/无权限, 502=限速
+        if code == 200:
+            resp["_source"] = src  # 标记实际使用的源
+            return resp
+        # 余额不足/无权限(400/403) -> 不是临时错误, 换源
+        if code == 502:
+            # 限速 -> 等一等可重试, 但先换源
+            _time.sleep(1)
+    
+    # 所有源都失败
+    return {"code": -1, "msg": "all_sources_failed", "data": None}
+
 class LoginReq(BaseModel):
     username: str
     password: str
@@ -106,7 +131,7 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6, source: st
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         raw = _cache[ck][0]
     else:
-        resp = _call_api("search", source=source, keyword=kw, page=api_page)
+        resp = _call_with_fallback("search", preferred=source, keyword=kw, page=api_page)
         if resp.get("code") != 200:
             return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
         raw = resp.get("data", [])
@@ -141,7 +166,7 @@ def drama_detail(drama_id: str, source: str = "baidu"):
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_api("detail", source=source, id=drama_id)
+    resp = _call_with_fallback("detail", preferred=source, id=drama_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         episodes = []
@@ -177,7 +202,7 @@ def drama_video(video_id: str, source: str = "baidu"):
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_api("video", source=source, video_id=video_id)
+    resp = _call_with_fallback("video", preferred=source, video_id=video_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         ql = data.get("qualities", data.get("video_lists", []))
