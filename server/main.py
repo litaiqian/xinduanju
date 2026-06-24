@@ -1,4 +1,4 @@
-"""短剧大全 API 服务 - 百度短剧(52api.cn) + 独立用户数据库 + 内存缓存"""
+"""短剧大全 API 服务 - 百度+红果双源(52api.cn) + 独立用户数据库 + 内存缓存"""
 import sqlite3, hashlib, secrets, requests as _requests, time as _time
 from datetime import date
 from contextlib import contextmanager
@@ -12,11 +12,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 DB = "drama.db"
 API_KEY = "mWqvYloCyXJjhm3kdif9VgZYak"
-API_URL = "https://www.52api.cn/api/bd_duanju"
+API_BD = "https://www.52api.cn/api/bd_duanju"   # 百度短剧
+API_HG = "https://www.52api.cn/api/hg_new"      # 红果新版
 
 # 内存缓存
 _cache = {}  # {key: (data, timestamp)}
 _CACHE_TTL = 1800  # 30分钟
+
+# 红果限速控制 (免费用户3秒1次)
+_hg_last_call = 0.0
+_HG_MIN_INTERVAL = 4.0
 
 @contextmanager
 def get_db():
@@ -53,15 +58,28 @@ def init_db():
         """)
         db.commit()
 
-def _call_api(type_: str, **kwargs) -> dict:
-    """调用52api.cn百度短剧"""
+def _call_api(type_: str, source: str = "baidu", **kwargs) -> dict:
+    """调用52api.cn短剧接口 - 支持百度/红果双源"""
+    url = API_HG if source == "hongguo" else API_BD
     params = {"key": API_KEY, "type": type_}
     params.update(kwargs)
+    
+    # 红果限速: 免费用户3秒1次
+    global _hg_last_call
+    if source == "hongguo":
+        elapsed = _time.time() - _hg_last_call
+        if elapsed < _HG_MIN_INTERVAL:
+            _time.sleep(_HG_MIN_INTERVAL - elapsed)
+        _hg_last_call = _time.time()
+    
     try:
-        if type_ == "search":
-            r = _requests.post(API_URL, json=params, timeout=60, proxies={"http": None, "https": None})
+        if source == "hongguo":
+            # 红果新版统一用POST JSON
+            r = _requests.post(url, json=params, timeout=60, proxies={"http": None, "https": None})
+        elif type_ == "search":
+            r = _requests.post(url, json=params, timeout=60, proxies={"http": None, "https": None})
         else:
-            r = _requests.get(API_URL, params=params, timeout=60, proxies={"http": None, "https": None})
+            r = _requests.get(url, params=params, timeout=60, proxies={"http": None, "https": None})
         return r.json()
     except Exception as e:
         return {"code": -1, "msg": str(e), "data": None}
@@ -78,17 +96,17 @@ def get_user_from_token(db, auth: str):
 def startup():
     init_db()
 
-# ---- 短剧 API (百度短剧+缓存) ----
+# ---- 短剧 API (百度+红果双源) ----
 @app.get("/api/drama/list")
-def drama_list(category: str = "", page: int = 1, page_size: int = 6):
+def drama_list(category: str = "", page: int = 1, page_size: int = 6, source: str = "baidu"):
     kw = category if category else "热播"
     api_page = max(1, (page - 1) * page_size // 15 + 1)
-    ck = f"list_{kw}_{api_page}"
+    ck = f"list_{source}_{kw}_{api_page}"
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         raw = _cache[ck][0]
     else:
-        resp = _call_api("search", keyword=kw, page=api_page)
+        resp = _call_api("search", source=source, keyword=kw, page=api_page)
         if resp.get("code") != 200:
             return JSONResponse({"status": "error", "data": [], "msg": f"api_code={resp.get('code')}"})
         raw = resp.get("data", [])
@@ -118,12 +136,12 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6):
     return JSONResponse({"status": "success", "data": data, "has_more": has_more})
 
 @app.get("/api/drama/detail/{drama_id}")
-def drama_detail(drama_id: str):
-    ck = f"detail_{drama_id}"
+def drama_detail(drama_id: str, source: str = "baidu"):
+    ck = f"detail_{source}_{drama_id}"
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_api("detail", id=drama_id)
+    resp = _call_api("detail", source=source, id=drama_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         episodes = []
@@ -154,12 +172,12 @@ def drama_detail(drama_id: str):
     return JSONResponse({"status": "error", "data": None, "msg": f"api_code={resp.get('code')}"})
 
 @app.get("/api/drama/video/{video_id}")
-def drama_video(video_id: str):
-    ck = f"video_{video_id}"
+def drama_video(video_id: str, source: str = "baidu"):
+    ck = f"video_{source}_{video_id}"
     now = _time.time()
     if ck in _cache and now - _cache[ck][1] < _CACHE_TTL:
         return JSONResponse(_cache[ck][0])
-    resp = _call_api("video", video_id=video_id)
+    resp = _call_api("video", source=source, video_id=video_id)
     if resp.get("code") == 200:
         data = resp.get("data", {})
         ql = data.get("qualities", data.get("video_lists", []))
