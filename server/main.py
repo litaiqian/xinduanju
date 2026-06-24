@@ -156,8 +156,8 @@ def drama_list(category: str = "", page: int = 1, page_size: int = 6, source: st
             "episode_count": item.get("totalChapterNum", 0),
             "score": item.get("score", "0"),
         })
-    # 有更多数据: raw足够多 或 分片未到末尾
-    has_more = len(raw) >= 10 or (start + page_size < 15 and len(raw) > start + page_size)
+    # 有更多数据: 当前分片有足够数据 + 未超上限(60个)
+    has_more = len(chunk) >= page_size and (page * page_size) < 60
     return JSONResponse({"status": "success", "data": data, "has_more": has_more})
 
 @app.get("/api/drama/detail/{drama_id}")
