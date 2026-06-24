@@ -25,9 +25,51 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import top.ipla.drama.data.ApiClient
 import top.ipla.drama.data.DramaDetail
 import top.ipla.drama.data.Episode
+
+// 52api直连配置
+private const val API_KEY = "mWqvYloCyXJjhm3kdif9VgZYak"
+private const val API_BD = "https://www.52api.cn/api/bd_duanju"
+private const val API_HG = "https://www.52api.cn/api/hg_new"
+
+/** 直连52api获取视频URL, 百度优先, 失败降级红果 */
+suspend fun fetchVideoUrlDirect(videoId: String): String = withContext(Dispatchers.IO) {
+    // 先试百度
+    var url = tryGetVideoUrl(API_BD, videoId, "bd")
+    if (url.isEmpty()) {
+        // 降级红果
+        url = tryGetVideoUrl(API_HG, videoId, "hg")
+    }
+    url
+}
+
+private fun tryGetVideoUrl(apiUrl: String, videoId: String, source: String): String {
+    return try {
+        val url = URL("$apiUrl?key=$API_KEY&type=video&video_id=$videoId")
+        val conn = url.openConnection() as HttpURLConnection
+        conn.connectTimeout = 10000
+        conn.readTimeout = 15000
+        val text = conn.inputStream.bufferedReader().readText()
+        conn.disconnect()
+        val json = JSONObject(text)
+        if (json.getInt("code") == 200) {
+            val data = json.getJSONObject("data")
+            // 百度: qualities[0].download_url, 红果: video_lists[0].url
+            if (data.has("qualities")) {
+                data.getJSONArray("qualities").getJSONObject(0).getString("download_url")
+            } else if (data.has("video_lists")) {
+                data.getJSONArray("video_lists").getJSONObject(0).getString("url")
+            } else ""
+        } else ""
+    } catch (e: Exception) { "" }
+}
 
 @Composable
 fun PlayerScreen(navController: NavHostController, dramaId: String) {
@@ -47,8 +89,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
                     // 自动加载第一集视频
                     val ep = resp.data?.episodes?.firstOrNull()
                     if (ep != null && ep.videoId.isNotEmpty()) {
-                        val vr = ApiClient.service.getVideoUrl(ep.videoId)
-                        if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                        currentVideoUrl = fetchVideoUrlDirect(ep.videoId)
                     }
                 }
             } catch (_: Exception) { }
@@ -111,8 +152,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
                                     val ep = episodes.getOrNull(currentIndex)
                                     if (ep != null && ep.videoId.isNotEmpty()) {
                                         scope.launch {
-                                            val vr = ApiClient.service.getVideoUrl(ep.videoId)
-                                            if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                                            currentVideoUrl = fetchVideoUrlDirect(ep.videoId)
                                         }
                                     }
                                 }
@@ -169,8 +209,7 @@ fun PlayerScreen(navController: NavHostController, dramaId: String) {
                             val ep = episodes.getOrNull(index)
                             if (ep != null && ep.videoId.isNotEmpty()) {
                                 scope.launch {
-                                    val vr = ApiClient.service.getVideoUrl(ep.videoId)
-                                    if (vr.status == "success") currentVideoUrl = vr.data?.videoUrl ?: ""
+                                    currentVideoUrl = fetchVideoUrlDirect(ep.videoId)
                                 }
                             }
                         },
