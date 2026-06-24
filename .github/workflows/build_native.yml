@@ -1,0 +1,59 @@
+name: Build Native Android APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 platform-tools'
+
+      - name: Setup Gradle 8.7
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+          echo "$PWD/gradle-8.7/bin" >> $GITHUB_PATH
+
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore native/meowfarm.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias meowfarm \
+            -storepass meowfarm123 -keypass meowfarm123 \
+            -dname "CN=MeowFarm, OU=Dev, O=MeowFarm, L=Beijing, ST=Beijing, C=CN"
+          echo "Keystore generated ($(wc -c < native/meowfarm.jks) bytes)"
+
+      - name: Build Release APK
+        working-directory: native
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Collect APK
+        run: |
+          APK=$(find native/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "Found APK: $APK"
+          cp "$APK" app-release.apk
+          echo "APK size: $(du -h app-release.apk | cut -f1)"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: drama-release
+          path: app-release.apk
+          retention-days: 90

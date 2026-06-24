@@ -1,0 +1,10 @@
+native/.gradle/
+native/app/build/
+native/build/
+native/meowfarm.jks
+native/*.jks
+*.apk
+*.aab
+drama.db
+__pycache__/
+*.pyc
