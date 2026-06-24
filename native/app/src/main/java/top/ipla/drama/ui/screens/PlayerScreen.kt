@@ -1,6 +1,5 @@
 package top.ipla.drama.ui.screens
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -74,8 +73,9 @@ fun PlayerScreen(navController: NavHostController, dramaId: Int) {
             VideoPlayer(
                 videoUrl = ep.videoUrl,
                 modifier = Modifier.fillMaxSize()
-                    .pointerInput(Unit) {
+                    .pointerInput(currentIndex) {
                         detectVerticalDragGestures(
+                            onVerticalDrag = { _, _ -> },
                             onDragEnd = {
                                 if (currentIndex < episodes.lastIndex) currentIndex++
                                 else if (currentIndex > 0) currentIndex--
