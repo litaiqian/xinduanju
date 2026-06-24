@@ -83,10 +83,10 @@ fun HomeScreen(navController: NavHostController) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("短剧大全", fontWeight = FontWeight.Bold) },
+            title = { Text("短剧大全", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
             actions = {
-                IconButton(onClick = { refreshTrigger++ }) {
-                    Icon(Icons.Default.Refresh, "刷新", tint = MaterialTheme.colorScheme.onPrimary)
+                IconButton(onClick = { refreshTrigger++ }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Refresh, "刷新", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(

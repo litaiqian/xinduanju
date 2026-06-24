@@ -27,11 +27,10 @@ fun DramaNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val hideBottomBar = currentRoute == "player" || currentRoute?.startsWith("player/") == true
+    val hideBottomBar = currentRoute?.startsWith("player") == true
 
     val items = listOf(
         BottomNavItem("首页", Icons.Default.Home, "home"),
-        BottomNavItem("播放", Icons.Default.PlayArrow, "player"),
         BottomNavItem("我的", Icons.Default.Person, "profile"),
     )
 
@@ -69,7 +68,6 @@ fun DramaNavHost(modifier: Modifier = Modifier) {
                 val dramaId = backStackEntry.arguments?.getString("dramaId") ?: ""
                 PlayerScreen(navController, dramaId)
             }
-            composable("player") { PlayerScreen(navController, "") }
             composable("profile") { ProfileScreen(navController) }
             composable("login") { LoginScreen(navController) }
             composable("history") { HistoryScreen(navController) }
