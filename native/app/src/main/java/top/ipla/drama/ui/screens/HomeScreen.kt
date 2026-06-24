@@ -47,7 +47,7 @@ fun HomeScreen(navController: NavHostController) {
         currentPage = 1
         try {
             val cat = if (selectedCategory == "推荐") "" else selectedCategory
-            val response = ApiClient.service.getDramaList(cat, 1)
+            val response = ApiClient.service.getDramaList(cat, 1, 6)
             if (response.status == "success") {
                 dramas = response.data
                 hasMore = response.hasMore
@@ -67,9 +67,10 @@ fun HomeScreen(navController: NavHostController) {
         if (shouldLoadMore.value) {
             loadingMore = true
             val nextPage = currentPage + 1
+            val pageSize = if (nextPage % 3 == 1) 6 else 2
             try {
                 val cat = if (selectedCategory == "推荐") "" else selectedCategory
-                val response = ApiClient.service.getDramaList(cat, nextPage)
+                val response = ApiClient.service.getDramaList(cat, nextPage, pageSize)
                 if (response.status == "success") {
                     dramas = dramas + response.data
                     currentPage = nextPage
